@@ -412,22 +412,30 @@ function dlPDF() {
   var typeLabel = payType === 'annuity' ? 'Аннуитет' : 'Дифференцированный';
   var rows_html = '';
   lastRows.forEach(function(r) {
-    var cls = r.isGrace ? 'grace' : r.isBalloon ? 'balloon' : '';
-    rows_html += '<tr class="' + cls + '"><td>' + r.n + '</td><td>' + ru(r.pay) + '</td><td>' + ru(r.od) + '</td><td>' + ru(r.interest) + '</td><td>' + ru(r.balance) + '</td></tr>';
+    var bg = r.isGrace ? '#f5f5f5' : r.isBalloon ? '#fffde0' : (r.n % 2 === 0 ? '#fafafa' : '#fff');
+    var clr = r.isGrace ? '#aaa' : '#111';
+    rows_html += '<tr><td style="text-align:center;color:#888;background:' + bg + '">' + r.n + '</td><td style="background:' + bg + ';color:' + clr + '">' + ru(r.pay) + '</td><td style="background:' + bg + ';color:' + clr + '">' + ru(r.od) + '</td><td style="background:' + bg + ';color:' + clr + '">' + ru(r.interest) + '</td><td style="background:' + bg + ';color:' + clr + '">' + ru(r.balance) + '</td></tr>';
   });
-  var css = 'body{font-family:Arial,sans-serif;font-size:11px;color:#111;margin:20px}h1{font-size:14px;margin-bottom:8px}p{margin:2px 0;color:#444;font-size:11px}table{width:100%;border-collapse:collapse;margin-top:14px}th{background:#eee;padding:6px 7px;text-align:right;font-size:9px;border:0.5px solid #ccc;text-transform:uppercase}th:first-child{text-align:center}td{padding:5px 7px;text-align:right;border:0.5px solid #ddd;font-size:10px}td:first-child{text-align:center;color:#888}tr:nth-child(even) td{background:#fafafa}tr.grace td{color:#aaa}tr.balloon td{background:#fffde0}tr.total td{font-weight:bold;background:#eee}';
+  var css = 'body{font-family:Arial,sans-serif;font-size:11px;color:#111;margin:20px}h1{font-size:14px;margin-bottom:8px}p{margin:2px 0;color:#444;font-size:11px}table{width:100%;border-collapse:collapse;margin-top:14px}th{background:#eee;padding:6px 7px;text-align:right;font-size:9px;border:0.5px solid #ccc;text-transform:uppercase}th:first-child{text-align:center}td{padding:5px 7px;text-align:right;border:0.5px solid #ddd;font-size:10px}.total-row td{font-weight:bold;background:#eee!important}';
   var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>График платежей</title><style>' + css + '</style></head><body>';
   html += '<h1>График платежей по кредиту</h1>';
-  html += '<p>Сумма: ' + ruInt(p.amount) + '&nbsp;&nbsp;|&nbsp;&nbsp;Ставка: ' + p.rate + '% год.&nbsp;&nbsp;|&nbsp;&nbsp;Срок: ' + p.term + ' мес.&nbsp;&nbsp;|&nbsp;&nbsp;Тип: ' + typeLabel + '</p>';
+  html += '<p>Сумма: ' + ruInt(p.amount) + ' | Ставка: ' + p.rate + '% год. | Срок: ' + p.term + ' мес. | Тип: ' + typeLabel + '</p>';
   if (p.grace > 0) html += '<p>Отсрочка ОД: ' + p.grace + ' мес.</p>';
   if (p.balloon > 0) html += '<p>Балонный платёж: ' + ruInt(p.balloon) + '</p>';
-  html += '<p style="margin-top:6px">Всего выплат: <strong>' + ruInt(tot.pay) + '</strong>&nbsp;&nbsp;|&nbsp;&nbsp;Переплата по %: <strong>' + ruInt(tot.int) + '</strong></p>';
+  html += '<p style="margin-top:6px">Всего выплат: <strong>' + ruInt(tot.pay) + '</strong> | Переплата по %: <strong>' + ruInt(tot.int) + '</strong></p>';
   html += '<table><thead><tr><th>#</th><th>Платёж ₽</th><th>Осн. долг ₽</th><th>Проценты ₽</th><th>Остаток ₽</th></tr></thead><tbody>';
   html += rows_html;
-  html += '<tr class="total"><td>Итого</td><td>' + ru(tot.pay) + '</td><td>' + ru(tot.od) + '</td><td>' + ru(tot.int) + '</td><td>—</td></tr>';
-  html += '</tbody></table></body></html>';
-  var w = window.open('', '_blank');
-  if (w) { w.document.write(html); w.document.close(); setTimeout(function() { w.print(); }, 400); }
+  html += '<tr class="total-row"><td style="text-align:center">Итого</td><td>' + ru(tot.pay) + '</td><td>' + ru(tot.od) + '</td><td>' + ru(tot.int) + '</td><td>—</td></tr>';
+  html += '</tbody></table><p style="margin-top:16px;color:#aaa;font-size:10px">Откройте этот файл в браузере и нажмите Ctrl+P (или Cmd+P) для печати в PDF</p></body></html>';
+
+  var blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'credit_schedule.html';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function() { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
 }
 </script>
 </body>
