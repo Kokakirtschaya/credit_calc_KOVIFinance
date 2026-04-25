@@ -17,42 +17,37 @@ tr.even td{background:#fafafa}
 tr.grace td{color:#bbb;background:#f7f7f7}
 tr.balloon td{background:#fffde0}
 tr.total td{font-weight:bold;background:#eee}
-.btn-print{display:block;width:100%;max-width:300px;margin:0 auto 20px;padding:12px;background:#2481cc;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;text-align:center}
-.btn-print:hover{opacity:.85}
-.hint{text-align:center;font-size:12px;color:#888;margin-bottom:16px}
-.error{text-align:center;padding:40px;color:#c33;font-size:14px}
-@media print{
-  .btn-print,.hint{display:none}
-  body{margin:10px}
-}
+.btn-print{display:block;width:100%;max-width:320px;margin:0 auto 12px;padding:13px;background:#2481cc;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
+.hint{text-align:center;font-size:12px;color:#888;margin-bottom:20px}
+.error{text-align:center;padding:40px;color:#c33;font-size:14px;line-height:1.6}
+@media print{.btn-print,.hint{display:none}body{margin:10px}}
 </style>
 </head>
 <body>
 <div id="content"><p style="text-align:center;padding:40px;color:#888">Загрузка...</p></div>
 <script>
-function ru(n){
-  return parseFloat(n).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'\u00a0');
-}
-function ruInt(n){
-  return Math.round(n).toLocaleString('ru-RU')+'\u00a0\u20bd';
-}
+function ru(n){return parseFloat(n).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'\u00a0');}
+function ruInt(n){return Math.round(n).toLocaleString('ru-RU')+'\u00a0\u20bd';}
 
 var d = null;
-try { d = JSON.parse(localStorage.getItem('credit_print')); } catch(e){}
+try {
+  var hash = window.location.hash.slice(1);
+  if (hash) d = JSON.parse(decodeURIComponent(escape(atob(hash))));
+} catch(e) {}
 
 if (!d || !d.rows || !d.rows.length) {
-  document.getElementById('content').innerHTML = '<div class="error">Данные не найдены.<br>Сначала рассчитайте кредит в калькуляторе и нажмите «Скачать PDF».</div>';
+  document.getElementById('content').innerHTML = '<div class="error">Данные не найдены.<br><br>Вернитесь в калькулятор,<br>рассчитайте кредит и нажмите<br>«Скачать PDF».</div>';
 } else {
   var typeLabel = d.type === 'annuity' ? 'Аннуитет' : 'Дифференцированный';
   var rows_html = '';
   d.rows.forEach(function(r, i) {
-    var cls = r.isGrace ? 'grace' : r.isBalloon ? 'balloon' : (i % 2 === 1 ? 'even' : '');
-    rows_html += '<tr class="' + cls + '"><td>' + r.n + '</td><td>' + ru(r.pay) + '</td><td>' + ru(r.od) + '</td><td>' + ru(r.interest) + '</td><td>' + ru(r.balance) + '</td></tr>';
+    var isGrace = r[5], isBalloon = r[6];
+    var cls = isGrace ? 'grace' : isBalloon ? 'balloon' : (i % 2 === 1 ? 'even' : '');
+    rows_html += '<tr class="' + cls + '"><td>' + r[0] + '</td><td>' + ru(r[1]) + '</td><td>' + ru(r[2]) + '</td><td>' + ru(r[3]) + '</td><td>' + ru(r[4]) + '</td></tr>';
   });
-
   var html = '';
-  html += '<button class="btn-print" onclick="window.print()">Печать / Сохранить PDF</button>';
-  html += '<p class="hint">На телефоне: нажмите кнопку выше → выберите «Сохранить как PDF»</p>';
+  html += '<button class="btn-print" onclick="window.print()">Распечатать / Сохранить PDF</button>';
+  html += '<p class="hint">На iPhone: нажмите кнопку выше → выберите «Сохранить как PDF»</p>';
   html += '<h1>График платежей по кредиту</h1>';
   html += '<p>Сумма: <strong>' + ruInt(d.amount) + '</strong> &nbsp;|&nbsp; Ставка: <strong>' + d.rate + '% год.</strong> &nbsp;|&nbsp; Срок: <strong>' + d.term + ' мес.</strong> &nbsp;|&nbsp; Тип: <strong>' + typeLabel + '</strong></p>';
   if (d.grace > 0) html += '<p>Отсрочка основного долга: <strong>' + d.grace + ' мес.</strong></p>';
@@ -62,7 +57,6 @@ if (!d || !d.rows || !d.rows.length) {
   html += rows_html;
   html += '<tr class="total"><td>Итого</td><td>' + ru(d.totPay) + '</td><td>' + ru(d.totOD) + '</td><td>' + ru(d.totInt) + '</td><td>—</td></tr>';
   html += '</tbody></table>';
-
   document.getElementById('content').innerHTML = html;
 }
 </script>
