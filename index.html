@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Кредитный калькулятор</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f5;
+    --bg3: #ebebeb;
+    --text: #1a1a1a;
+    --text2: #666666;
+    --border: rgba(0,0,0,0.12);
+    --accent: #2481cc;
+    --accent-text: #ffffff;
+    --radius: 10px;
+    --success-bg: #e8f5e9;
+    --warn-bg: #fffde7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --bg2: #2c2c2e;
+      --bg3: #3a3a3c;
+      --text: #f2f2f7;
+      --text2: #8e8e93;
+      --border: rgba(255,255,255,0.10);
+      --success-bg: #1a2e1a;
+      --warn-bg: #2e2a10;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    padding-bottom: 32px;
+  }
+  .header {
+    background: var(--accent);
+    color: var(--accent-text);
+    padding: 14px 16px 12px;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  .header small {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.8;
+    margin-top: 2px;
+  }
+  .section {
+    background: var(--bg);
+    border-bottom: 0.5px solid var(--border);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text2);
+    margin-bottom: 12px;
+  }
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+  .field input, .field select {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg2);
+    color: var(--text);
+    font-size: 15px;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--bg);
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .inline-group { display: flex; gap: 8px; }
+  .inline-group input { flex: 1; min-width: 0; }
+  .inline-group select { flex: 0 0 110px; min-width: 0; }
+  .toggle-row { display: flex; gap: 6px; }
+  .toggle-btn {
+    flex: 1;
+    height: 42px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg2);
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .toggle-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .btn-calc {
+    display: block;
+    width: calc(100% - 32px);
+    margin: 12px 16px 0;
+    height: 48px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: -0.2px;
+  }
+  .btn-calc:active { opacity: 0.85; transform: scale(0.99); }
+  .err { color: #c33; font-size: 12px; margin-top: 8px; min-height: 16px; }
+  #results { display: none; margin-top: 8px; }
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 14px 16px;
+    background: var(--bg);
+    border-bottom: 0.5px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .metric {
+    background: var(--bg2);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+  }
+  .metric-label { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
+  .metric-value { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
+  .metric-value.overpay { color: #c0392b; }
+  .dl-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 12px;
+  }
+  .dl-btn {
+    flex: 1;
+    height: 38px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg2);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .dl-btn:active { opacity: 0.75; }
+  .tbl-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text2);
+    padding: 0 16px 8px;
+  }
+  .tbl-scroll { overflow-x: auto; margin: 0 16px; border-radius: var(--radius); border: 0.5px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; min-width: 380px; }
+  th {
+    background: var(--bg2);
+    padding: 8px 8px;
+    text-align: right;
+    font-weight: 600;
+    font-size: 10px;
+    color: var(--text2);
+    border-bottom: 0.5px solid var(--border);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  th:first-child { text-align: center; width: 36px; }
+  td { padding: 7px 8px; text-align: right; border-bottom: 0.5px solid var(--border); }
+  td:first-child { text-align: center; color: var(--text2); font-size: 11px; }
+  tr:nth-child(even) td { background: var(--bg2); }
+  tr.grace td { color: var(--text2); }
+  tr.balloon td { background: var(--warn-bg) !important; }
+  tr.total td { font-weight: 600; background: var(--bg2) !important; }
+  .legend {
+    display: flex;
+    gap: 16px;
+    padding: 8px 16px 0;
+    flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0;
+  }
+  .dot-grace { background: var(--bg3); }
+  .dot-balloon { background: #f9c74f; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  Кредитный калькулятор
+  <small>График платежей с выгрузкой в PDF</small>
+</div>
+
+<div class="section">
+  <div class="section-label">Основные параметры</div>
+  <div class="row2" style="margin-bottom:12px">
+    <div class="field">
+      <label>Сумма кредита, ₽</label>
+      <input type="number" id="amount" value="1000000" min="0" step="1000" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label>Ставка, % годовых</label>
+      <input type="number" id="rate" value="18" min="0.01" max="500" step="0.1" inputmode="decimal">
+    </div>
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label>Срок кредита</label>
+      <div class="inline-group">
+        <input type="number" id="term" value="24" min="1" inputmode="numeric">
+        <select id="termUnit">
+          <option value="months">мес.</option>
+          <option value="years">лет</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Отсрочка ОД, мес.</label>
+      <input type="number" id="grace" value="0" min="0" step="1" inputmode="numeric">
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-label">Тип платежа</div>
+  <div class="toggle-row">
+    <button class="toggle-btn active" id="btn-ann" onclick="setType('annuity')">Аннуитет</button>
+    <button class="toggle-btn" id="btn-dif" onclick="setType('diff')">Дифференцированный</button>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-label">Балонный платёж (последний месяц)</div>
+  <div class="field">
+    <label>Размер балонного платежа</label>
+    <div class="inline-group">
+      <input type="number" id="balloon" value="0" min="0" step="0.01" placeholder="0" inputmode="decimal">
+      <select id="balloonUnit">
+        <option value="pct">% от суммы</option>
+        <option value="sum">₽ сумма</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="err" id="err" style="padding:0 16px"></div>
+<button class="btn-calc" onclick="calculate()">Рассчитать</button>
+
+<div id="results">
+  <div class="metrics" id="metrics"></div>
+  <div class="dl-row">
+    <button class="dl-btn" onclick="dlPDF()">↓ Скачать PDF</button>
+  </div>
+  <div class="tbl-label">График платежей</div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot dot-grace"></div> Отсрочка ОД</div>
+    <div class="legend-item"><div class="legend-dot dot-balloon"></div> Балонный платёж</div>
+  </div>
+  <div style="height:10px"></div>
+  <div class="tbl-scroll"><table id="tbl"></table></div>
+</div>
+
+<script>
+// Телеграм WebApp инициализация
+if (window.Telegram && window.Telegram.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+
+var payType = 'annuity';
+
+function setType(t) {
+  payType = t;
+  document.getElementById('btn-ann').className = 'toggle-btn' + (t === 'annuity' ? ' active' : '');
+  document.getElementById('btn-dif').className = 'toggle-btn' + (t === 'diff' ? ' active' : '');
+}
+
+function ru(n) {
+  return parseFloat(n).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+}
+function ruInt(n) {
+  return Math.round(n).toLocaleString('ru-RU') + '\u00a0₽';
+}
+
+function getP() {
+  var amount = parseFloat(document.getElementById('amount').value) || 0;
+  var rate = parseFloat(document.getElementById('rate').value) || 0;
+  var term = parseInt(document.getElementById('term').value) || 0;
+  if (document.getElementById('termUnit').value === 'years') term *= 12;
+  var grace = parseInt(document.getElementById('grace').value) || 0;
+  var bv = parseFloat(document.getElementById('balloon').value) || 0;
+  var bu = document.getElementById('balloonUnit').value;
+  var balloon = bu === 'pct' ? amount * bv / 100 : bv;
+  return { amount: amount, rate: rate, term: term, grace: grace, balloon: balloon };
+}
+
+var lastRows = [];
+var lastP = {};
+
+function buildRows(p) {
+  var r = p.rate / 100 / 12;
+  var balloon = Math.min(p.balloon, p.amount * 0.9999);
+  var principal = p.amount - balloon;
+  var balFull = p.amount;
+  var balPrin = principal;
+  var rows = [];
+  var gp = Math.min(p.grace, p.term - 1);
+  var nPay = p.term - gp;
+  var annuity = 0;
+  if (payType === 'annuity') {
+    if (nPay > 0 && r > 0) annuity = balPrin * (r * Math.pow(1 + r, nPay)) / (Math.pow(1 + r, nPay) - 1);
+    else if (nPay > 0) annuity = balPrin / nPay;
+  }
+  var diffM = nPay > 0 ? balPrin / nPay : 0;
+  for (var i = 1; i <= p.term; i++) {
+    var interest = balFull * r;
+    var od = 0, pay = 0;
+    var isGrace = i <= gp;
+    var isLast = i === p.term;
+    if (isGrace) {
+      od = 0; pay = interest;
+    } else if (isLast) {
+      od = balPrin + (balloon > 0 ? balloon : 0);
+      pay = od + interest;
+    } else {
+      if (payType === 'annuity') {
+        od = annuity - interest;
+        if (od < 0) od = 0;
+        if (od > balPrin) od = balPrin;
+        pay = od + interest;
+      } else {
+        od = diffM;
+        if (od > balPrin) od = balPrin;
+        pay = od + interest;
+      }
+    }
+    balFull -= od;
+    balPrin -= Math.min(od, balPrin);
+    if (balFull < 0.005) balFull = 0;
+    if (balPrin < 0.005) balPrin = 0;
+    rows.push({ n: i, pay: pay, od: od, interest: interest, balance: balFull, isGrace: isGrace, isBalloon: isLast && balloon > 0 });
+  }
+  return rows;
+}
+
+function calculate() {
+  var err = document.getElementById('err');
+  err.textContent = '';
+  var p = getP();
+  if (p.amount <= 0) { err.textContent = 'Введите сумму кредита'; return; }
+  if (p.rate <= 0) { err.textContent = 'Введите процентную ставку'; return; }
+  if (p.term < 1) { err.textContent = 'Укажите срок кредита'; return; }
+  if (p.grace >= p.term) { err.textContent = 'Отсрочка должна быть меньше срока'; return; }
+  if (p.balloon >= p.amount) { err.textContent = 'Балонный платёж не может быть >= суммы кредита'; return; }
+
+  var rows = buildRows(p);
+  lastRows = rows; lastP = p;
+
+  var totPay = rows.reduce(function(a, r) { return a + r.pay; }, 0);
+  var totInt = rows.reduce(function(a, r) { return a + r.interest; }, 0);
+  var totOD  = rows.reduce(function(a, r) { return a + r.od; }, 0);
+
+  var mHTML = '';
+  mHTML += '<div class="metric"><div class="metric-label">Сумма кредита</div><div class="metric-value">' + ruInt(p.amount) + '</div></div>';
+  mHTML += '<div class="metric"><div class="metric-label">Всего выплат</div><div class="metric-value">' + ruInt(totPay) + '</div></div>';
+  mHTML += '<div class="metric"><div class="metric-label">Переплата по %</div><div class="metric-value overpay">' + ruInt(totInt) + '</div></div>';
+  if (p.balloon > 0) mHTML += '<div class="metric"><div class="metric-label">Балонный платёж</div><div class="metric-value">' + ruInt(p.balloon) + '</div></div>';
+  document.getElementById('metrics').innerHTML = mHTML;
+
+  var html = '<thead><tr><th>#</th><th>Платёж ₽</th><th>Осн. долг ₽</th><th>Проценты ₽</th><th>Остаток ₽</th></tr></thead><tbody>';
+  rows.forEach(function(r) {
+    var cls = r.isGrace ? 'grace' : r.isBalloon ? 'balloon' : '';
+    html += '<tr class="' + cls + '"><td>' + r.n + '</td><td>' + ru(r.pay) + '</td><td>' + ru(r.od) + '</td><td>' + ru(r.interest) + '</td><td>' + ru(r.balance) + '</td></tr>';
+  });
+  html += '<tr class="total"><td>Итого</td><td>' + ru(totPay) + '</td><td>' + ru(totOD) + '</td><td>' + ru(totInt) + '</td><td>—</td></tr>';
+  html += '</tbody>';
+  document.getElementById('tbl').innerHTML = html;
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function dlPDF() {
+  if (!lastRows.length) return;
+  var p = lastP;
+  var tot = lastRows.reduce(function(a, r) { return { pay: a.pay+r.pay, od: a.od+r.od, int: a.int+r.interest }; }, {pay:0,od:0,int:0});
+  var typeLabel = payType === 'annuity' ? 'Аннуитет' : 'Дифференцированный';
+  var rows_html = '';
+  lastRows.forEach(function(r) {
+    var cls = r.isGrace ? 'grace' : r.isBalloon ? 'balloon' : '';
+    rows_html += '<tr class="' + cls + '"><td>' + r.n + '</td><td>' + ru(r.pay) + '</td><td>' + ru(r.od) + '</td><td>' + ru(r.interest) + '</td><td>' + ru(r.balance) + '</td></tr>';
+  });
+  var css = 'body{font-family:Arial,sans-serif;font-size:11px;color:#111;margin:20px}h1{font-size:14px;margin-bottom:8px}p{margin:2px 0;color:#444;font-size:11px}table{width:100%;border-collapse:collapse;margin-top:14px}th{background:#eee;padding:6px 7px;text-align:right;font-size:9px;border:0.5px solid #ccc;text-transform:uppercase}th:first-child{text-align:center}td{padding:5px 7px;text-align:right;border:0.5px solid #ddd;font-size:10px}td:first-child{text-align:center;color:#888}tr:nth-child(even) td{background:#fafafa}tr.grace td{color:#aaa}tr.balloon td{background:#fffde0}tr.total td{font-weight:bold;background:#eee}';
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>График платежей</title><style>' + css + '</style></head><body>';
+  html += '<h1>График платежей по кредиту</h1>';
+  html += '<p>Сумма: ' + ruInt(p.amount) + '&nbsp;&nbsp;|&nbsp;&nbsp;Ставка: ' + p.rate + '% год.&nbsp;&nbsp;|&nbsp;&nbsp;Срок: ' + p.term + ' мес.&nbsp;&nbsp;|&nbsp;&nbsp;Тип: ' + typeLabel + '</p>';
+  if (p.grace > 0) html += '<p>Отсрочка ОД: ' + p.grace + ' мес.</p>';
+  if (p.balloon > 0) html += '<p>Балонный платёж: ' + ruInt(p.balloon) + '</p>';
+  html += '<p style="margin-top:6px">Всего выплат: <strong>' + ruInt(tot.pay) + '</strong>&nbsp;&nbsp;|&nbsp;&nbsp;Переплата по %: <strong>' + ruInt(tot.int) + '</strong></p>';
+  html += '<table><thead><tr><th>#</th><th>Платёж ₽</th><th>Осн. долг ₽</th><th>Проценты ₽</th><th>Остаток ₽</th></tr></thead><tbody>';
+  html += rows_html;
+  html += '<tr class="total"><td>Итого</td><td>' + ru(tot.pay) + '</td><td>' + ru(tot.od) + '</td><td>' + ru(tot.int) + '</td><td>—</td></tr>';
+  html += '</tbody></table></body></html>';
+  var w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); setTimeout(function() { w.print(); }, 400); }
+}
+</script>
+</body>
+</html>
